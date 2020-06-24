@@ -3,6 +3,7 @@ package hcaptcha
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -108,6 +109,44 @@ func (c *Client) SiteVerify(r *http.Request) (response Response) {
 		url.Values{
 			"secret":   {c.secret},
 			"response": {generatedResponseID},
+		},
+	)
+	if err != nil {
+		response.ErrorCodes = append(response.ErrorCodes, err.Error())
+		return
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		response.ErrorCodes = append(response.ErrorCodes, err.Error())
+		return
+	}
+
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		response.ErrorCodes = append(response.ErrorCodes, err.Error())
+		return
+	}
+
+	return
+}
+
+// VerifyToken accepts a token and a secret key (https://dashboard.hcaptcha.com/settings).
+// It returns the hcaptcha's `Response`.
+// The `response.Success` reports whether the validation passed.
+// Any errors are passed through the `response.ErrorCodes` field.
+// Same as SiteVerify except token is provided by caller instead of being extracted from HTTP request
+func (c *Client) VerifyToken(tkn string) (response Response) {
+	if tkn == "" {
+		response.ErrorCodes = append(response.ErrorCodes, errors.New("tkn is empty").Error())
+		return
+	}
+
+	resp, err := c.HTTPClient.PostForm(apiURL,
+		url.Values{
+			"secret":   {c.secret},
+			"response": {tkn},
 		},
 	)
 	if err != nil {
