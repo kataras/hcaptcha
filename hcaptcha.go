@@ -105,31 +105,9 @@ func (c *Client) SiteVerify(r *http.Request) (response Response) {
 		return
 	}
 
-	resp, err := c.HTTPClient.PostForm(apiURL,
-		url.Values{
-			"secret":   {c.secret},
-			"response": {generatedResponseID},
-		},
-	)
-	if err != nil {
-		response.ErrorCodes = append(response.ErrorCodes, err.Error())
-		return
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		response.ErrorCodes = append(response.ErrorCodes, err.Error())
-		return
-	}
-
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		response.ErrorCodes = append(response.ErrorCodes, err.Error())
-		return
-	}
-
-	return
+	// Call VerifyToken for verification after extracting token
+	// Check token before call to maintain backwards compatibility
+	return c.VerifyToken(generatedResponseID)
 }
 
 // VerifyToken accepts a token and a secret key (https://dashboard.hcaptcha.com/settings).
