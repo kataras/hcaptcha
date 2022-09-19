@@ -35,6 +35,12 @@ type Client struct {
 	// and without additional information.
 	FailureHandler http.Handler
 
+	// Optional checks for siteverify
+	// The user's IP address.
+	RemoteIP string
+	// The sitekey you expect to see.
+	SiteKey string
+
 	secret string
 }
 
@@ -123,12 +129,22 @@ func (c *Client) VerifyToken(tkn string) (response Response) {
 		return
 	}
 
-	resp, err := c.HTTPClient.PostForm(apiURL,
-		url.Values{
-			"secret":   {c.secret},
-			"response": {tkn},
-		},
-	)
+	values := url.Values{
+		"secret":   {c.secret},
+		"response": {tkn},
+	}
+
+	// Add remoteIP if set
+	if c.RemoteIP != "" {
+		values.Add("remoteip", c.RemoteIP)
+	}
+
+	// Add sitekey if set
+	if c.SiteKey != "" {
+		values.Add("sitekey", c.SiteKey)
+	}
+
+	resp, err := c.HTTPClient.PostForm(apiURL, values)
 	if err != nil {
 		response.ErrorCodes = append(response.ErrorCodes, err.Error())
 		return
